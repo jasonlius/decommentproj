@@ -1,3 +1,0 @@
-This is line one.
-This is /*\n*/ line two.
-This is line three.
