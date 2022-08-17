@@ -2,14 +2,13 @@
 #define EXIT_SUCCESS 1
 #define EXIT_FAILURE 0
 
-enum stateType 
-{
+enum stateType {
     NORMAL , SLASH , SLASH_STAR , SLASH_STAR_STAR , 
     DOUBLE_QUOTE , SINGLE_QUOTE , DQ_BACKSLASH , SQ_BACKSLASH   
 };
-enum stateType state;
 
-enum stateType normalStateHandler(int c , int lineNumber)
+
+enum stateType normalStateHandler(int c , int *lineNumber)
 {
     enum stateType state;
     switch (c)
@@ -27,7 +26,7 @@ enum stateType normalStateHandler(int c , int lineNumber)
         break;
     default:
         if (c == '\n')
-            lineNumber++ ;        
+            (*lineNumber)++ ;         
         putchar(c);
         state = NORMAL;
         break;
@@ -35,7 +34,7 @@ enum stateType normalStateHandler(int c , int lineNumber)
     return state; 
 }
 
-enum stateType slashStateHandler(int c , int lineNumber)
+enum stateType slashStateHandler(int c , int *lineNumber)
 {
     enum stateType state;
     switch (c)
@@ -60,7 +59,7 @@ enum stateType slashStateHandler(int c , int lineNumber)
         break;
     default:
         if (c == '\n')
-            lineNumber++ ;        
+            (*lineNumber)++ ;        
         putchar('/');
         putchar(c);
         state = NORMAL;
@@ -95,7 +94,7 @@ enum stateType slashStartStartStateHandler(int c)
     return state;
 }
 
-enum stateType doubleQuoteStateHandler(int c , int lineNumber)
+enum stateType doubleQuoteStateHandler(int c , int *lineNumber)
 {
     enum stateType state; 
     switch (c)
@@ -110,7 +109,7 @@ enum stateType doubleQuoteStateHandler(int c , int lineNumber)
         break;
     default:
         if (c == '\n')
-        lineNumber++;
+        (*lineNumber)++ ; 
         putchar(c);
         state = DOUBLE_QUOTE;
         break;
@@ -126,7 +125,7 @@ enum stateType DqBackslashStateHandler(int c)
     return state;
 }
 
-enum stateType singleQuoteStateHandler(int c , int lineNumber)
+enum stateType singleQuoteStateHandler(int c , int *lineNumber)
 {
     enum stateType state; 
     switch (c)
@@ -141,7 +140,7 @@ enum stateType singleQuoteStateHandler(int c , int lineNumber)
         break;
     default:
         if (c == '\n')
-        lineNumber++;
+        (*lineNumber)++ ; 
         putchar(c);
         state = SINGLE_QUOTE;
         break;
@@ -157,20 +156,32 @@ enum stateType sqBackslashStateHandler(int c)
     return state;
 }
 
+int detectUnterminatedComment(enum stateType state, int lineNumber)
+{
+    if(state == SLASH_STAR || state == SLASH_STAR_STAR ){
+        fprintf(stderr , "Error: line %d: unterminated comment\n" , lineNumber);
+        return EXIT_FAILURE;
+    }
+    else 
+        return EXIT_SUCCESS;
+}
+
 int main()
-{   
+{
+    enum stateType state;   
     state = NORMAL;
     int c;
     int lineNumber = 1;
+
     while((c = getchar()) != EOF)
     {
         switch (state)
         {
         case NORMAL:
-            state = normalStateHandler(c, lineNumber);
+            state = normalStateHandler(c ,&lineNumber);
             break;
         case SLASH:
-            state = slashStateHandler(c, lineNumber);
+            state = slashStateHandler(c , &lineNumber);
             break;
         case SLASH_STAR:
             state = slashStartStateHandler(c);
@@ -179,23 +190,18 @@ int main()
             state = slashStartStartStateHandler(c);
             break;
         case DOUBLE_QUOTE:
-            state = doubleQuoteStateHandler(c , lineNumber);
+            state = doubleQuoteStateHandler(c , &lineNumber );
             break;
         case DQ_BACKSLASH:
             state = DqBackslashStateHandler(c);
             break;
         case SINGLE_QUOTE:
-            state = singleQuoteStateHandler(c , lineNumber);
+            state = singleQuoteStateHandler(c, &lineNumber);
             break;
         case SQ_BACKSLASH:
             state = sqBackslashStateHandler(c);
             break;
         }
     }
-    if(state == SLASH_STAR || state == SLASH_STAR_STAR ){
-        fprintf(stderr , "Error: line %d: unterminated comment\n" , lineNumber);
-        return EXIT_FAILURE;
-    }
-    else 
-        return EXIT_SUCCESS;
+    return detectUnterminatedComment(state,lineNumber);
 }
